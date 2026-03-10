@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
     char destIpStr[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(destAddr.sin_addr), destIpStr, INET_ADDRSTRLEN);
     freeaddrinfo(res);
-
+    cout << "new\n";
     cout << "Трассировка к " << targetHost << " [" << destIpStr << "]" << endl;
     cout << "С максимальным числом прыжков: " << maxHops << "\n" << endl;
 
@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
         bool hopResponded = false;
 
         for (int i = 0; i < 3; ++i) {
-            ICMPHeader icmpReq = { 8, 0, 0, (uint16_t)GetCurrentProcessId(), ++seq_no };
+            ICMPHeader icmpReq = { 8, 0, 0, htons((uint16_t)GetCurrentProcessId()), htons(++seq_no) };
             icmpReq.checksum = calculateChecksum((uint16_t*)&icmpReq, sizeof(icmpReq));
 
             auto start = chrono::steady_clock::now();
@@ -121,7 +121,7 @@ int main(int argc, char* argv[]) {
                 int ipHeaderLen = (recvBuffer[0] & 0x0F) * 4;
                 ICMPHeader* icmpReply = (ICMPHeader*)(recvBuffer + ipHeaderLen);
 
-                if (icmpReply->type == 0 && icmpReply->id == (uint16_t)GetCurrentProcessId()) {
+                if (icmpReply->type == 0 && ntohs(icmpReply->id) == (uint16_t)GetCurrentProcessId()) {
                     auto ms = chrono::duration_cast<chrono::milliseconds>(end - start).count();
                     cout << ms << " мс\t";
                     packetFound = true;
@@ -132,7 +132,7 @@ int main(int argc, char* argv[]) {
 
                 if (icmpReply->type == 11) {
                     ICMPHeader* innerIcmp = (ICMPHeader*)(recvBuffer + ipHeaderLen + 8 + 20);
-                    if (innerIcmp->id == (uint16_t)GetCurrentProcessId()) {
+                    if (ntohs(innerIcmp->id) == (uint16_t)GetCurrentProcessId()) {
                         auto ms = chrono::duration_cast<chrono::milliseconds>(end - start).count();
                         cout << ms << " мс\t";
                         packetFound = true;
