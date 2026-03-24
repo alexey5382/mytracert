@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
@@ -55,7 +55,6 @@ namespace P2PChat
 
                 try
                 {
-                    // Пытаемся занять порты в основном потоке, чтобы сразу поймать ошибку
                     IPEndPoint localUdpEp = new IPEndPoint(myIpAddress, myUdpPort);
                     udpServer = new UdpClient(localUdpEp);
                     udpServer.EnableBroadcast = true;
@@ -63,12 +62,10 @@ namespace P2PChat
                     tcpListener = new TcpListener(myIpAddress, myTcpPort);
                     tcpListener.Start();
 
-                    // Если дошли сюда без ошибок, значит порты свободны, выходим из цикла инициализации
                     break;
                 }
                 catch (SocketException ex)
                 {
-                    // Закрываем то, что успело открыться перед ошибкой
                     udpServer?.Close();
                     tcpListener?.Stop();
 
@@ -82,12 +79,10 @@ namespace P2PChat
                 }
             }
 
-            // Переход к основному режиму работы
             Console.Clear();
             Console.WriteLine($"Запуск чата. IP: {myIpAddress}, Имя: {myName}");
             Log("Запуск узла", ConsoleColor.Green);
 
-            // Передаем успешно созданные слушатели в фоновые задачи
             _ = Task.Run(() => StartTcpListener(tcpListener));
             _ = Task.Run(() => StartUdpListener(udpServer));
 
@@ -129,7 +124,6 @@ namespace P2PChat
 
         private static void Shutdown()
         {
-            // Закрываем все активные соединения перед выходом
             foreach (var kvp in activeNodes)
             {
                 try
@@ -265,7 +259,7 @@ namespace P2PChat
                     client.Close();
                 }
             }
-            catch { /* Игнорируем ошибки неудачного подключения */ }
+            catch {}
         }
 
         private static async Task HandleIncomingConnectionAsync(TcpClient client)
@@ -368,7 +362,7 @@ namespace P2PChat
                 {
                     await SendMessageAsync(kvp.Value.Stream, type, payload);
                 }
-                catch { /* Ошибка вызовет отключение в цикле чтения */ }
+                catch {}
             }
         }
 
@@ -385,7 +379,6 @@ namespace P2PChat
             nodeConn.Client.Close();
         }
 
-        // Обновленный метод вывода с поддержкой цвета
         private static void Log(string message, ConsoleColor color = ConsoleColor.Gray)
         {
             lock (consoleLock)
